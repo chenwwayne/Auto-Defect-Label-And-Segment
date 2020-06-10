@@ -1,4 +1,4 @@
-## Intruduction
+## 基于AttentionGAN和区域生长分割算法的缺陷标注与分割
 
 ### segImage.py中segImage函数：
 
@@ -14,3 +14,4 @@
 
 label.py中segImage函数：
 
+区域生长imreconstruct的意义在哪？
