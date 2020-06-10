@@ -75,6 +75,7 @@ def main():
         for region in stats:
             # measure.regionprops的返回值的属性相关介绍太少！
             # filled_image:Binary region image with filled holes which has the same size as bounding box.
+            # https://www.jianshu.com/p/1b90b549b50e
             defect[ceil(region.bbox[0]):floor(region.bbox[2]), ceil(region.bbox[1]):floor(region.bbox[3])] = region.filled_image 
             
             
