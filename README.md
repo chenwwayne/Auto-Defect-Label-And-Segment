@@ -12,7 +12,7 @@ This repo based on [AttentionGAN](https://github.com/Ha0Tang/AttentionGAN)  resu
 
 ## AttentionGAN Result
 
-<img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/README/real.png" width="500">
+<img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/README/real.png" width="150">
 
 ## Detail of algorithm 
 
