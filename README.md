@@ -12,7 +12,29 @@ This repo based on [AttentionGAN](https://github.com/Ha0Tang/AttentionGAN)  resu
 
 ## AttentionGAN Result
 
+- input
+
 <img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/README/real.png" width="150">
+
+- output
+
+<img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/README/saliency.png" width="150">
+
+<img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/README/fake.png" width="150">
+
+## This repo. result
+
+- input image
+
+  <img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/images/real/3300_TB943661AL_TBAOLDC0_5_-885.925_1134.625__S_20190423_110822_real_A.png" width="150">
+
+- Defect label result(test_label.py)
+
+  <img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/result/label_result/3300_TB943661AL_TBAOLDC0_9_-1000.909_1188.721__S_20190423_110822_mask.png" width="150">
+
+- Defect segmention result(test_seg.py)
+
+  <img src="https://github.com/ischansgithub/Auto-Defect-Label-And-Segment/blob/master/result/seg_result/3300_TB943661AL_TBAOLDC0_9_-1000.909_1188.721__S_20190423_110822_0_real_A.png" width="150">
 
 ## Detail of algorithm 
 
@@ -29,7 +51,3 @@ This repo based on [AttentionGAN](https://github.com/Ha0Tang/AttentionGAN)  resu
 - 以标注框为红色为例，取出input的红色通道, 与bool型矩阵相比取最大。由于bool型矩阵不是False 就是True,True即为最大值255，则对应的边界像素取最大即为红色框
 
 ### 形态学重建imreconstruct
-
-
-
-## References
