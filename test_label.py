@@ -3,9 +3,51 @@ import os
 import os.path as osp
 import cv2
 import numpy as np
+import xml.dom.minidom as minidom
+import pdb
 from math import ceil, floor
 from skimage import measure
 from segImage import segImage
+from eval import bbox_iou
+
+def read_xml(xml_filename):
+    dom = minidom.parse(xml_filename)
+    root = dom.documentElement
+    assert (len(root.getElementsByTagName('filename')) == 1)
+    assert (len(root.getElementsByTagName('size')) == 1)
+
+    for filename in root.getElementsByTagName('filename'):
+        filename = filename.firstChild.data
+
+    max_area = 0
+    for bndbox in root.getElementsByTagName('bndbox'):
+        xmin = bndbox.getElementsByTagName('xmin')[0].firstChild.data
+        ymin = bndbox.getElementsByTagName('ymin')[0].firstChild.data
+        xmax = bndbox.getElementsByTagName('xmax')[0].firstChild.data
+        ymax = bndbox.getElementsByTagName('ymax')[0].firstChild.data
+        xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)
+        area = (xmax - xmin) * (ymax - ymin)
+        if area > max_area:
+            max_area = area
+            bboxes = [xmin, xmax, ymin, ymax]
+    return  bboxes
+
+def bbox_iou(box1, box2):
+    b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
+    b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
+
+    inter_rect_x1 = max(b1_x1, b2_x1)
+    inter_rect_y1 = max(b1_y1, b2_y1)
+    inter_rect_x2 = min(b1_x2, b2_x2)
+    inter_rect_y2 = min(b1_y2, b2_y2)
+    inter_area = (inter_rect_x2 - inter_rect_x1) * (inter_rect_y2 - inter_rect_y1)
+
+    b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
+    b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
+
+    iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
+
+    return iou
 
 def imreconstruct(marker, mask, SE=np.ones([3,3])):
     """
@@ -25,14 +67,17 @@ def imreconstruct(marker, mask, SE=np.ones([3,3])):
     return marker
 
 def main():
-    saliency_root = './images/saliency/'
-    real_root = './images/real/'
-    result_root = './result/label_result/'
+    saliency_root = './images/adc3300_d10_v2/saliency/'
+    real_root = './images/adc3300_d10_v2/real/'
+    result_root = './result/adc3300_d10_v2/'
 
     kernel5 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
     kernel3 = cv2.getStructuringElement(cv2.MORPH_RECT,(3,3))
 
-    saliency_names = [i for i in os.listdir(saliency_root)]
+    saliency_names = [i for i in os.listdir(saliency_root) if i.endswith('.png')]
+    xml_names = [i for i in os.listdir(real_root) if i.endswith('.xml')]
+    
+    TP,FP,TN,FN = 0,0,0,0
     for img in saliency_names:
         # 显著性图转为灰度图
         saliency = cv2.cvtColor(cv2.imread(osp.join(saliency_root, img)), cv2.COLOR_BGR2GRAY)
@@ -41,10 +86,22 @@ def main():
         test = cv2.imread(osp.join(real_root, img[:-10] + '_real_A.png'))
         test = cv2.normalize(src=test, dst=np.zeros(test.shape), alpha=0, beta=1.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
 
+        xml_name = img[:-10] + '_real_A.xml'
+        
         saliency_np = np.array(saliency)
-        if saliency_np.min() > 200:
-            def_box = test
+        if saliency_np.min() > 200: # 如果检测无缺陷
+            if xml_name not in xml_names: # 如果不存在标注
+                TN += 1
+            else:
+                FN += 1
         else:
+            try:
+                gt_box = read_xml(osp.join(real_root, xml_name))
+            except:
+                FP += 1
+                print("no xml")
+                continue
+            
             # 计算显著图二值化的灰度阈值
             closed_thres = max(saliency_np.min()+20, 170)
             # 得到显著图的二值图saliencyBinary
@@ -60,13 +117,28 @@ def main():
             # 测量标记的图像区域的属性，值为0的标签将被忽略（忽略黑色部分）
             # 返回一个”描述带标签的区域“列表
             stats = measure.regionprops(defect)
+            
             for region in stats:
-                # begion.bbox:边界外接框
-                mask[ceil(region.bbox[0]):floor(region.bbox[2]), ceil(region.bbox[1]):floor(region.bbox[3])] = 1
-            mask_seg = segImage(test, cv2.dilate(mask, kernel3).astype('float64'))
-            cv2.imwrite(osp.join(result_root, img[:-10] + '_mask.png'), mask_seg);
+                # mask[ceil(region.bbox[0]):floor(region.bbox[2]), ceil(region.bbox[1]):floor(region.bbox[3])] = 1
+
+                pred_box = [ceil(region.bbox[0]), floor(region.bbox[2]), ceil(region.bbox[1]), floor(region.bbox[3])]
+                iou = bbox_iou(pred_box, gt_box)
+                if iou > 0.5:
+                    TP += 1
+                else:
+                    FP += 1
+             
+            # mask_seg = segImage(test, cv2.dilate(mask, kernel3).astype('float64'))
+            # cv2.imwrite(osp.join(result_root, img[:-10] + '_label.png'), mask_seg);
             # cv2.imshow('inshow', mask_seg)
             # cv2.waitKey(0)
+            
+    precision = TP /(TP+FP)
+    recall = TP / (TP+FN)
+    f1 = (2 * precision * recall) / (precision + recall)
+    print("precision:{} recall:{} F1:{}".format(precision,recall,f1))
+            
+        
 
 if __name__ == '__main__':
     main()
