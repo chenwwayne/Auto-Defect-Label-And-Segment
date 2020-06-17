@@ -4,7 +4,7 @@
 
 This repo based on [AttentionGAN](https://github.com/Ha0Tang/AttentionGAN)  result. Using AttentionGAN  to generate saliency image and target image (In this repo., as defect-free image). Using defect image, saliency image and defect-free image to realisze automatic  defect labeling  and segmentation of defects.
 
-## sRequirements
+## Requirements
 
 - cv2
 - numpy
